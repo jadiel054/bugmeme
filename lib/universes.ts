@@ -1,3 +1,5 @@
+import { EXTRA } from "./extra-phrases";
+
 export type Status = {
   label: string;
   color: string;
@@ -99,9 +101,10 @@ export const STATUSES: Status[] = [
   { label: "DEU RUIM DE VEZ", color: "text-zinc-400", bg: "from-zinc-500/20 to-zinc-600/10", emoji: "💀" },
   { label: "FANTASMA DO PASSADO", color: "text-purple-300", bg: "from-purple-500/20 to-fuchsia-500/10", emoji: "👻" },
   { label: "REINICIANDO A VIDA", color: "text-orange-300", bg: "from-orange-500/20 to-red-500/10", emoji: "♻️" },
+  { label: "MODO SOBREVIVÊNCIA", color: "text-sky-300", bg: "from-sky-500/20 to-cyan-500/10", emoji: "🪡" },
+  { label: "CAOS CONTROLADO", color: "text-lime-300", bg: "from-lime-500/20 to-green-500/10", emoji: "💥" },
 ];
 
-// ========== TECH ==========
 const TECH_SITUACOES = [
   "WiFi caiu no meio da demo pro cliente",
   "Deploy na sexta 18:07",
@@ -151,7 +154,6 @@ const TECH_IA = [
   "Reiniciando meu contexto... esqueci tudo que você disse.",
 ];
 
-// ========== FUTEBOL ==========
 const FUTEBOL_SITUACOES = [
   "Perdeu o jogo no último minuto",
   "O juiz inventou um pênalti",
@@ -186,7 +188,6 @@ const FUTEBOL_IA = [
   "Detectei uma anomalia estatística chamada 'roubo descarado'.",
 ];
 
-// ========== TRABALHO ==========
 const TRABALHO_SITUACOES = [
   "Reunião que poderia ser um e-mail",
   "O chefe mandou mensagem no domingo",
@@ -221,7 +222,6 @@ const TRABALHO_IA = [
   "Estou processando seu burnout... status: crônico.",
 ];
 
-// ========== RELACIONAMENTO ==========
 const RELA_SITUACOES = [
   "Deixou a mensagem no visualizado",
   "Esqueceu o aniversário",
@@ -256,7 +256,6 @@ const RELA_IA = [
   "Reiniciando meu módulo de esperança... falhou.",
 ];
 
-// ========== FACULDADE ==========
 const FACUL_SITUACOES = [
   "Prova surpresa na segunda de manhã",
   "O professor não postou o material",
@@ -291,7 +290,6 @@ const FACUL_IA = [
   "Estou processando sua desculpa... nível de criatividade: 3/10.",
 ];
 
-// ========== GAMES ==========
 const GAMES_SITUACOES = [
   "Perdeu a ranked por lag",
   "O servidor caiu no meio da partida",
@@ -326,7 +324,6 @@ const GAMES_IA = [
   "Estou processando sua skill issue... confirmado.",
 ];
 
-// ========== BRASIL ==========
 const BRASIL_SITUACOES = [
   "A luz caiu no meio do jogo",
   "O PIX não caiu",
@@ -361,7 +358,6 @@ const BRASIL_IA = [
   "Estou processando sua reclamação... fila de espera: 47 anos.",
 ];
 
-// ========== FAMILIA ==========
 const FAMILIA_SITUACOES = [
   "A mãe ligou 14 vezes",
   "O tio mandou corrente no grupo",
@@ -396,10 +392,7 @@ const FAMILIA_IA = [
   "Estou processando a pergunta 'quando vai casar?'... erro 404.",
 ];
 
-export const PHRASES: Record<
-  UniverseId,
-  { situacoes: string[]; desculpas: string[]; respostasIA: string[] }
-> = {
+const BASE = {
   tech: { situacoes: TECH_SITUACOES, desculpas: TECH_DESCULPAS, respostasIA: TECH_IA },
   futebol: { situacoes: FUTEBOL_SITUACOES, desculpas: FUTEBOL_DESCULPAS, respostasIA: FUTEBOL_IA },
   trabalho: { situacoes: TRABALHO_SITUACOES, desculpas: TRABALHO_DESCULPAS, respostasIA: TRABALHO_IA },
@@ -408,7 +401,19 @@ export const PHRASES: Record<
   games: { situacoes: GAMES_SITUACOES, desculpas: GAMES_DESCULPAS, respostasIA: GAMES_IA },
   brasil: { situacoes: BRASIL_SITUACOES, desculpas: BRASIL_DESCULPAS, respostasIA: BRASIL_IA },
   familia: { situacoes: FAMILIA_SITUACOES, desculpas: FAMILIA_DESCULPAS, respostasIA: FAMILIA_IA },
-};
+} as const;
+
+function pool(universeId: UniverseId) {
+  const b = BASE[universeId];
+  const e = EXTRA[universeId];
+  return {
+    situacoes: [...b.situacoes, ...e.situacoes],
+    desculpas: [...b.desculpas, ...e.desculpas],
+    respostasIA: [...b.respostasIA, ...e.respostasIA],
+  };
+}
+
+export const PHRASES = BASE;
 
 export function pickRandom<T>(arr: T[], exclude?: T): T {
   if (arr.length <= 1) return arr[0];
@@ -429,18 +434,17 @@ export type Meme = {
 };
 
 export function generateMeme(universeId: UniverseId, prev?: Meme | null): Meme {
-  const pool = PHRASES[universeId];
+  const p = pool(universeId);
   return {
-    situacao: pickRandom(pool.situacoes, prev?.situacao),
-    desculpa: pickRandom(pool.desculpas, prev?.desculpa),
-    respostaIA: pickRandom(pool.respostasIA, prev?.respostaIA),
+    situacao: pickRandom(p.situacoes, prev?.situacao),
+    desculpa: pickRandom(p.desculpas, prev?.desculpa),
+    respostaIA: pickRandom(p.respostasIA, prev?.respostaIA),
     status: pickRandom(STATUSES, prev?.status),
     id: Math.random().toString(36).slice(2, 7).toUpperCase(),
     universeId,
   };
 }
 
-/** Gera várias opções (modo personalizado). Por enquanto usa o pool do universo + pequena variação. */
 export function generateCustomOptions(
   universeId: UniverseId,
   context: string,
@@ -448,17 +452,13 @@ export function generateCustomOptions(
 ): Meme[] {
   const options: Meme[] = [];
   const usedIds = new Set<string>();
-
-  // Tenta usar o contexto como situação se for curto o suficiente
-  const contextAsSituacao = context.trim().length > 8 && context.trim().length < 80;
+  const contextAsSituacao = context.trim().length > 8 && context.trim().length < 90;
 
   for (let i = 0; i < count; i++) {
     let meme = generateMeme(universeId);
     if (contextAsSituacao && i < 2) {
-      // As primeiras opções usam o texto do usuário como situação
       meme = { ...meme, situacao: context.trim() };
     }
-    // Garante IDs únicos
     while (usedIds.has(meme.id)) {
       meme = { ...meme, id: Math.random().toString(36).slice(2, 7).toUpperCase() };
     }
