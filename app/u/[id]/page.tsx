@@ -25,6 +25,8 @@ import { toPng } from "html-to-image";
 import { toggleFavorite, isFavorite } from "@/lib/prefs";
 import { pushHistory } from "@/lib/history";
 import { buildMemeText, shareWhatsApp, shareX, shareNative } from "@/lib/share";
+import { analyzeSentiment, type SentimentResult } from "@/lib/sentiment";
+import { IconWhatsApp, IconX } from "@/components/BrandIcons";
 import Link from "next/link";
 
 const UNIVERSE_THEME: Record<
@@ -81,6 +83,17 @@ const UNIVERSE_THEME: Record<
   },
 };
 
+const EMOTION_LABEL: Record<string, string> = {
+  frustracao: "Frustração",
+  ironia: "Ironia",
+  desespero: "Desespero",
+  raiva: "Raiva",
+  resignacao: "Resignção",
+  caos: "Caos",
+  humor: "Humor",
+  neutro: "Neutro",
+};
+
 function toSaved(m: Meme) {
   return {
     id: m.id,
@@ -107,6 +120,7 @@ export default function UniversePage({
   const [meme, setMeme] = useState<Meme | null>(null);
   const [customOptions, setCustomOptions] = useState<Meme[] | null>(null);
   const [customInput, setCustomInput] = useState("");
+  const [sentiment, setSentiment] = useState<SentimentResult | null>(null);
   const [count, setCount] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [fav, setFav] = useState(false);
@@ -176,6 +190,7 @@ export default function UniversePage({
   const generateRandom = () => {
     playSound("click");
     setCount((c) => c + 1);
+    setSentiment(null);
     setTimeout(() => {
       applyMeme(generateMeme(universeId, meme));
       playSound("win");
@@ -189,6 +204,8 @@ export default function UniversePage({
     }
     playSound("click");
     setCount((c) => c + 1);
+    const s = analyzeSentiment(customInput);
+    setSentiment(s);
     setTimeout(() => {
       setCustomOptions(generateCustomOptions(universeId, customInput.trim(), 6));
       setMeme(null);
@@ -270,12 +287,13 @@ export default function UniversePage({
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-4 pb-40">
+      <main className="max-w-lg mx-auto px-4 pt-4 pb-44">
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => {
               setMode("random");
               setCustomOptions(null);
+              setSentiment(null);
             }}
             className={`flex-1 h-10 rounded-xl text-[13px] font-bold transition ${
               mode === "random" ? "bg-white text-black" : "bg-white/5 text-zinc-400 border border-white/10"
@@ -297,7 +315,7 @@ export default function UniversePage({
         </div>
 
         {mode === "custom" && (
-          <div className="mb-4">
+          <div className="mb-4 space-y-2">
             <input
               type="text"
               value={customInput}
@@ -306,10 +324,21 @@ export default function UniversePage({
               placeholder="Ex: perdi no último minuto..."
               className="w-full h-12 px-4 rounded-xl bg-[#12131b] border border-white/10 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/30"
             />
+            {sentiment && (
+              <div className="text-[11px] text-zinc-500 px-1">
+                Tom detectado:{" "}
+                <span className="text-zinc-300 font-medium">
+                  {EMOTION_LABEL[sentiment.emotion] || sentiment.emotion}
+                </span>
+                {sentiment.intensity > 0.4 && (
+                  <span className="text-zinc-600"> · intensidade {Math.round(sentiment.intensity * 100)}%</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        <div className="min-h-[340px] flex flex-col justify-center">
+        <div className="min-h-[300px] flex flex-col justify-center">
           <AnimatePresence mode="wait">
             {customOptions && (
               <motion.div
@@ -317,7 +346,7 @@ export default function UniversePage({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="space-y-2.5"
+                className="space-y-2.5 pb-4"
               >
                 <div className="text-[11px] tracking-widest text-zinc-500">
                   ESCOLHA UMA ({customOptions.length})
@@ -401,15 +430,15 @@ export default function UniversePage({
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
                         onClick={() => meme && shareWhatsApp(buildMemeText(meme))}
-                        className="h-9 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[12px] font-bold active:scale-[0.97]"
+                        className="h-10 rounded-xl bg-[#25D366]/15 border border-[#25D366]/35 text-[#25D366] text-[12px] font-bold flex items-center justify-center gap-2 active:scale-[0.97]"
                       >
-                        WhatsApp
+                        <IconWhatsApp className="w-4 h-4" /> WhatsApp
                       </button>
                       <button
                         onClick={() => meme && shareX(buildMemeText(meme))}
-                        className="h-9 rounded-xl bg-sky-500/15 border border-sky-400/30 text-sky-300 text-[12px] font-bold active:scale-[0.97]"
+                        className="h-10 rounded-xl bg-white/5 border border-white/15 text-zinc-100 text-[12px] font-bold flex items-center justify-center gap-2 active:scale-[0.97]"
                       >
-                        Postar no X
+                        <IconX className="w-3.5 h-3.5" /> Postar no X
                       </button>
                     </div>
                   </div>
@@ -437,7 +466,7 @@ export default function UniversePage({
         </div>
       </main>
 
-      <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-3 pt-2 bg-gradient-to-t from-[#07070b] via-[#07070b]/95 to-transparent">
+      <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-3 pt-3 bg-gradient-to-t from-[#07070b] via-[#07070b]/95 to-transparent">
         <div className="max-w-lg mx-auto">
           <button
             onClick={mode === "random" ? generateRandom : generateCustom}
