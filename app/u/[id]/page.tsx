@@ -26,6 +26,7 @@ import { toggleFavorite, isFavorite } from "@/lib/prefs";
 import { pushHistory } from "@/lib/history";
 import { buildMemeText, shareWhatsApp, shareX, shareNative } from "@/lib/share";
 import { analyzeSentiment, type SentimentResult } from "@/lib/sentiment";
+import { logMemeToServer } from "@/lib/api";
 import { IconWhatsApp, IconX } from "@/components/BrandIcons";
 import Link from "next/link";
 
@@ -185,6 +186,7 @@ export default function UniversePage({
     setMeme(next);
     setCustomOptions(null);
     pushHistory(toSaved(next));
+    logMemeToServer(next, sentiment?.emotion ?? null);
   };
 
   const generateRandom = () => {
