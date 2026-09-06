@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { hasDatabase, getDb } from "@/lib/db";
-import { sql } from "drizzle-orm";
+import { neon } from "@neondatabase/serverless";
 
 export const runtime = "edge";
 
@@ -16,13 +15,14 @@ export async function GET() {
     database: "not_configured",
   };
 
-  if (!hasDatabase()) {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
     return NextResponse.json(payload);
   }
 
   try {
-    const db = getDb();
-    await db.execute(sql`select 1 as ok`);
+    const sql = neon(url);
+    await sql`select 1 as ok`;
     payload.database = "connected";
   } catch (e) {
     payload.ok = false;
