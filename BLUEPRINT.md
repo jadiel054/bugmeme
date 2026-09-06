@@ -1,194 +1,197 @@
-# Blueprint Completo — BugMeme (v2)
+# Blueprint Completo — BugMeme (v3)
 
 ## 1. Visão Geral
 
 **Nome:** BugMeme  
-**Tagline:** Gerador de memes de tech que não funciona (e agora reage ao caos)
+**Tagline:** Gerador de memes e desculpas absurdas para qualquer caos da vida
 
 **Objetivo**  
-Site público e viral que gera memes de desculpas de programador + respostas de IA + situações caóticas. Com animações e efeitos visuais/sonoros **condicionais ao status gerado**, exportação de GIF e figurinhas de WhatsApp.
+Site público e viral que gera memes no formato **Situação + Desculpa + Resposta da IA + Status caótico**.  
+Agora com **múltiplos universos de humor** e modo **Personalizado** (digite um contexto e receba várias opções variadas, no estilo de busca de GIF).
 
 **Problema que resolve**  
-Falta de material rápido, visualmente impactante e “compartilhável” sobre o caos do dia a dia de quem trabalha com tecnologia.
+Falta de material rápido, visualmente impactante e prontamente compartilhável sobre os caos do dia a dia (trabalho, futebol, relacionamento, faculdade, games, etc.).
 
 **Público-alvo**  
-Qualquer pessoa de tech (devs, QAs, PMs, designers, gestores, estudantes).
+Qualquer pessoa no Brasil (e depois LATAM). Não é mais restrito a tech.
 
 **Modelo de negócio**  
-- Gratuito e aberto no lançamento (foco em viralização)
+- Gratuito e aberto no lançamento (foco total em viralização)
 - Monetização futura: doações, Premium leve, anúncios discretos
 
 **Nível de complexidade**  
-Produto completo desde o início, com forte ênfase em experiência interativa e compartilhamento.
+Produto completo desde o início, com forte ênfase em experiência interativa, multi-universo e compartilhamento.
 
 ---
 
-## 2. Personas e Perfis
+## 2. Universos de Humor (desde o lançamento)
+
+O sistema nasce com os seguintes universos (cada um com pool próprio de frases, status e personalidade visual):
+
+| Universo              | Descrição curta                                      | Exemplos de tom                          |
+|-----------------------|------------------------------------------------------|------------------------------------------|
+| **Tech**              | O caos clássico de programação e deploy              | "funciona na minha máquina", "foi o estagiário" |
+| **Futebol**           | Desculpas de torcedor, jogador e técnico             | "foi o juiz", "no VAR tava ok"           |
+| **Trabalho / CLT**    | Escritório, reunião e chefes                         | "vamos alinhar", "foi o e-mail que não chegou" |
+| **Relacionamento**    | Namoro, ficante e drama                              | "não vi a mensagem", "tava ocupado"      |
+| **Faculdade**         | Provas, professores e trabalhos em grupo             | "o professor não explicou", "caí de cansaço" |
+| **Games**            | Lag, servidor e ranked                               | "foi lag", "o servidor caiu"             |
+| **Brasil / Cotidiano**| PIX, luz, trânsito, vida real brasileira            | "a luz caiu", "o PIX não caiu"           |
+| **Família**          | Pais, tios, churrasco e WhatsApp da família          | "sua mãe ligou", "não repara a bagunça"  |
+
+> Universos futuros possíveis: Academia, Internet/Brainrot, Séries/Filmes, Pets, etc.
+
+Cada universo possui:
+- Pool próprio de Situações, Desculpas, Respostas de IA e Status
+- Cores e personalidade visual próprias
+- Status reativos com animações e sons específicos
+
+---
+
+## 3. Personas e Perfis
 
 | Perfil              | Permissões principais                                      |
 |---------------------|------------------------------------------------------------|
-| Visitante anônimo   | Gerar, baixar imagem/GIF, compartilhar, gerar wallpaper   |
+| Visitante anônimo   | Gerar (aleatório + personalizado), baixar, compartilhar   |
 | Usuário cadastrado  | + Favoritos, histórico, sugerir frases, votar             |
 | Curador             | Aprovar/rejeitar frases (IA + humanas)                    |
 | Administrador       | Tudo + métricas + configurações globais                   |
 
 ---
 
-## 3. Arquitetura de Navegação
+## 4. Arquitetura de Navegação
 
 - **Público:** Home (Gerador) | Explorar | Sobre | Apoiar
 - **Logado:** + Favoritos | Histórico | Enviar frase | Configurações
-- Mobile-first com bottom navigation / drawer
-- Auth completa (e-mail + Google + GitHub) + recuperação de senha
+- Seletor de Universo sempre visível (chips ou dropdown)
+- Mobile-first
+- Auth completa (e-mail + Google + GitHub)
 
 ---
 
-## 4. Módulos e Funcionalidades
+## 5. Módulos e Funcionalidades
 
-### 4.1 Gerador Principal (o coração)
-- Botão “GERAR BUG” com personalidade (foge, treme, muda de humor)
+### 5.1 Gerador Principal
+- Seletor de **Universo**
+- Dois modos:
+  - **Aleatório** → gera 1 meme do universo escolhido
+  - **Personalizado** → usuário digita um contexto e recebe **6 a 9 opções variadas** (estilo busca de GIF)
+- Botão com personalidade (foge, treme, etc.)
 - Contador global + sessão
-- **Sistema de Status Reativo**:
-  - Cada status tem:
-    - Cor dominante
-    - Animação de entrada
-    - Partículas / efeitos
-    - Som específico
-    - Variação de tipografia/glow
-- Entrada cinematográfica do card do meme
-- Micro-interações em todos os botões
+- Sistema de **Status Reativo** (cor + animação + som por status)
 
-### 4.2 Exportação Avançada
-- Imagem estática (Stories 9:16, Feed 1:1 e 4:5, Twitter 16:9)
-- **GIF / WebP animado** (loop de 2–3 segundos com o efeito do status)
-- **Figurinha de WhatsApp** (estática + animada)
-- Wallpaper (estático e versão animada opcional)
-- Nome de arquivo inteligente + watermark discreto (removível no Premium)
+### 5.2 Modo Personalizado (novo)
+- Campo de texto livre (ex: "deploy quebrou na sexta", "perdi o jogo no último minuto", "minha mãe descobriu")
+- Gera grade com 6–9 variações
+- Usuário escolhe a favorita
+- Depois pode baixar / compartilhar normalmente
 
-### 4.3 Compartilhamento
-- WhatsApp (texto + imagem/GIF/figurinha)
-- Instagram (Stories/Feed)
-- Twitter/X e LinkedIn
-- Web Share API nativa
+### 5.3 Exportação
+- Imagem estática (Stories, Feed, Twitter)
+- GIF / WebP animado
+- Figurinha de WhatsApp (estática + animada)
+- Wallpaper
+
+### 5.4 Compartilhamento
+- WhatsApp, Instagram, Twitter/X, LinkedIn, nativo
 - Copiar texto formatado
 
-### 4.4 Sistema de Conteúdo (IA + Curadoria)
-- Pool inicial de alta qualidade
-- Geração sob demanda com IA
+### 5.5 Sistema de Conteúdo
+- Pools por universo
+- Geração com IA + curadoria humana
 - Sugestão de frases por usuários
-- Moderação humana + votação
-- Categorias e tags
+- Votação e moderação
 
-### 4.5 Galeria / Explorar
+### 5.6 Galeria / Explorar
 - Mais gerados, mais compartilhados, mais recentes
-- Filtro por status e categoria
-- “Gerar a partir deste”
+- Filtro por universo e status
 
-### 4.6 Conta, Moderação e Admin
-- Favoritos, histórico, preferências (som, efeitos, animações)
+### 5.7 Conta, Moderação e Admin
+- Favoritos, histórico, preferências
 - Fila de moderação
-- Painel administrativo com métricas
+- Painel administrativo
 
 ---
 
-## 5. Design System & Experiência Visual
+## 6. Design System & Experiência Visual
 
-### Cores (refinadas)
-- Fundo base: `#07070b` → `#0a0b12`
-- Accent principal: Ciano `#67e8f9` + Fúcsia `#e879f9`
-- Status-specific:
-  - Em Chamas → Vermelho/Laranja
-  - Aguardando Milagre → Ciano/Dourado
-  - Fantasma → Roxo/Transparente
-  - etc.
-
-### Tipografia
-- Display: Space Grotesk
-- Mono: JetBrains Mono
-- Hierarquia clara e tracking intencional
-
-### Animações (prioridade alta)
-- Entrada do meme (scale + glitch + fade)
-- Partículas e efeitos por status
-- Transições suaves de estado
-- Feedback tátil (quando possível)
-- Modo “reduzir movimento” (acessibilidade)
-
-### Som
-- Sons contextuais por status
-- Volume baixo por padrão
-- Toggle fácil + preferência salva
+- Fundo escuro vaporwave/glitch
+- Tipografia: Space Grotesk (display) + JetBrains Mono
+- Cores e glows diferentes por universo e por status
+- Animações reativas ao status
+- Modo "reduzir movimento" (acessibilidade)
+- Sons contextuais
 
 ---
 
-## 6. Aspectos Legais (LGPD)
+## 7. Aspectos Legais (LGPD)
 - Termos de Uso + Política de Privacidade
 - Consentimento no cadastro
-- Direitos do titular (acesso, exclusão, portabilidade)
-- Moderação de conteúdo gerado por IA e usuários
+- Direitos do titular
+- Moderação de conteúdo
 - Cookie banner mínimo
 
 ---
 
-## 7. Modelo de Dados (visão de alto nível)
+## 8. Modelo de Dados (visão de alto nível)
 
 - User
-- Phrase (type, text, category, source, status, votes…)
-- GeneratedMeme (com referência aos 4 elementos + unique_code)
+- Universe (id, name, slug, colors, etc.)
+- Phrase (universe_id, type, text, source, status, votes…)
+- GeneratedMeme
 - Favorite / Vote
-- ExportLog (para métricas de download/compartilhamento)
+- ExportLog
 - SystemConfig
 
 ---
 
-## 8. Fluxos Principais
-1. Visitante gera → vê animação do status → baixa GIF/figurinha → compartilha
+## 9. Fluxos Principais
+1. Escolhe universo → Gera aleatório ou digita contexto (Personalizado) → Escolhe opção → Baixa/Compartilha
 2. Usuário salva favorito e sugere frase
 3. Moderação de frases
-4. Geração de Wallpaper / Sticker Pack
-5. Auth completa + onboarding leve
+4. Auth completa
 
 ---
 
-## 9. Requisitos Técnicos
-- Next.js + React + Tailwind + Framer Motion (animações)
-- Canvas / html-to-image + biblioteca de GIF
-- Auth (Clerk ou NextAuth + Google/GitHub)
-- Banco: PostgreSQL (Neon/Supabase)
-- IA para geração de frases
+## 10. Requisitos Técnicos
+- Next.js + React + Tailwind + Framer Motion
+- html-to-image + biblioteca de GIF
+- Auth (Clerk / NextAuth)
+- PostgreSQL (Neon/Supabase)
+- IA para geração contextual
 - Deploy: Vercel
-- Rate limiting + proteção básica
 
 ---
 
-## 10. Roadmap
+## 11. Roadmap
 
 **MVP (lançamento)**
-- Gerador completo com status reativo + animações
-- Download de imagem + GIF
-- Figurinha de WhatsApp (pelo menos estática)
-- Compartilhamento completo
+- Multi-universo (os 8 principais)
+- Modo Aleatório + Modo Personalizado (grade de opções)
+- Status reativo + animações básicas
+- Download de imagem
+- Compartilhamento
 - Auth + favoritos
-- Pool inicial + geração com IA
-- LGPD básico
+- Pool inicial de frases por universo
 
 **v1.0**
-- Figurinhas animadas
+- GIF e figurinhas
 - Galeria pública
-- Sistema de votação e curadoria completo
-- Wallpaper animado
-- Painel de moderação
+- Curadoria e votação completa
+- Wallpaper
 
 **Futuro**
-- Premium (sem watermark, mais templates, API)
-- Sticker Pack completo
-- Versão em inglês
+- Premium
+- Mais universos
+- Sticker packs por universo
+- Versão em inglês / espanhol
 - Comunidade
 
 ---
 
-## 11. Observações de Design
-- A personalidade visual/sonora por status é o diferencial principal
-- Tudo deve facilitar o compartilhamento (é o motor de crescimento)
-- Manter o tom autêntico e “de quem sofre com deploy na sexta”
-- Acessibilidade (reduzir movimento) não pode ser esquecida
+## 12. Observações de Design
+- A personalidade por universo e por status é o diferencial
+- O modo Personalizado é o grande motor de engajamento
+- Manter o tom autêntico e "de quem vive o caos"
+- Facilitar ao máximo o compartilhamento
+- Acessibilidade não pode ser esquecida
