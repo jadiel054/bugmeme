@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import BottomNav from "@/components/BottomNav";
 
 const space = Space_Grotesk({
   subsets: ["latin"],
@@ -15,13 +16,19 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BugMeme — Gerador de Memes de Tech que Não Funciona",
+  title: "BugMeme — Gerador de memes e desculpas absurdas",
   description:
-    "Crie desculpas de programador + respostas de IA em loop. Animações reativas, GIF e figurinhas. Feito com ódio de deploy na sexta.",
+    "Crie memes de tech, futebol, trabalho, relacionamento e mais. Modo personalizado, download e compartilhamento.",
   openGraph: {
     title: "BugMeme",
-    description: "Gerador de memes de tech que não funciona",
+    description: "Gerador de memes e desculpas absurdas",
     type: "website",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: "cover",
   },
 };
 
@@ -32,8 +39,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${space.variable} ${jetbrains.variable}`}>
-      <body className="min-h-screen bg-background antialiased selection:bg-fuchsia-500/30">
+      <body className="min-h-screen bg-[#07070b] antialiased selection:bg-fuchsia-500/30 pb-16">
         {children}
+        <BottomNav />
       </body>
     </html>
   );
