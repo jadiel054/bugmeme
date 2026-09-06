@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, use } from "react";
+import { useState, useRef, useCallback, use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,6 +13,7 @@ import {
   Skull,
   Download,
   Sparkles,
+  Heart,
 } from "lucide-react";
 import {
   UNIVERSES,
@@ -22,7 +23,62 @@ import {
   type UniverseId,
 } from "@/lib/universes";
 import { toPng } from "html-to-image";
+import { toggleFavorite, isFavorite } from "@/lib/prefs";
 import Link from "next/link";
+
+const UNIVERSE_THEME: Record<
+  UniverseId,
+  { glow: string; border: string; soft: string; buttonShadow: string }
+> = {
+  tech: {
+    glow: "bg-cyan-500/20",
+    border: "border-cyan-400/30",
+    soft: "from-cyan-500/10 to-fuchsia-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(34,211,238,0.25)]",
+  },
+  futebol: {
+    glow: "bg-emerald-500/20",
+    border: "border-emerald-400/30",
+    soft: "from-emerald-500/10 to-green-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(52,211,153,0.25)]",
+  },
+  trabalho: {
+    glow: "bg-blue-500/20",
+    border: "border-blue-400/30",
+    soft: "from-blue-500/10 to-indigo-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(96,165,250,0.25)]",
+  },
+  relacionamento: {
+    glow: "bg-pink-500/20",
+    border: "border-pink-400/30",
+    soft: "from-pink-500/10 to-rose-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(244,114,182,0.25)]",
+  },
+  faculdade: {
+    glow: "bg-amber-500/20",
+    border: "border-amber-400/30",
+    soft: "from-amber-500/10 to-orange-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(251,191,36,0.25)]",
+  },
+  games: {
+    glow: "bg-violet-500/25",
+    border: "border-violet-400/35",
+    soft: "from-violet-500/15 to-purple-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(167,139,250,0.3)]",
+  },
+  brasil: {
+    glow: "bg-yellow-500/20",
+    border: "border-yellow-400/30",
+    soft: "from-yellow-500/10 to-green-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(250,204,21,0.25)]",
+  },
+  familia: {
+    glow: "bg-orange-500/20",
+    border: "border-orange-400/30",
+    soft: "from-orange-500/10 to-red-500/5",
+    buttonShadow: "shadow-[0_8px_32px_rgba(251,146,60,0.25)]",
+  },
+};
 
 export default function UniversePage({
   params,
@@ -39,11 +95,14 @@ export default function UniversePage({
   const [customInput, setCustomInput] = useState("");
   const [count, setCount] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
-  const [buttonOffset, setButtonOffset] = useState({ x: 0, y: 0 });
-  const [isFleeing, setIsFleeing] = useState(false);
+  const [fav, setFav] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const audioCtx = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    if (meme) setFav(isFavorite(meme.id));
+  }, [meme]);
 
   if (!universe) {
     return (
@@ -57,6 +116,7 @@ export default function UniversePage({
   }
 
   const universeId = universe.id as UniverseId;
+  const theme = UNIVERSE_THEME[universeId];
 
   const initAudio = useCallback(() => {
     if (!audioCtx.current) {
@@ -90,22 +150,12 @@ export default function UniversePage({
 
   const generateRandom = () => {
     playSound("click");
-    const next = count + 1;
-    setCount(next);
-
-    if (next % 5 === 0) {
-      setIsFleeing(true);
-      setButtonOffset({ x: (Math.random() - 0.5) * 120, y: (Math.random() - 0.5) * 60 });
-    } else {
-      setIsFleeing(false);
-      setButtonOffset({ x: 0, y: 0 });
-    }
-
+    setCount((c) => c + 1);
     setTimeout(() => {
       setMeme(generateMeme(universeId, meme));
       setCustomOptions(null);
       playSound("win");
-    }, 150);
+    }, 120);
   };
 
   const generateCustom = () => {
@@ -120,7 +170,7 @@ export default function UniversePage({
       setCustomOptions(generateCustomOptions(universeId, customInput.trim(), 6));
       setMeme(null);
       playSound("win");
-    }, 150);
+    }, 120);
   };
 
   const selectOption = (opt: Meme) => {
@@ -173,10 +223,30 @@ export default function UniversePage({
     }
   };
 
+  const onFavorite = () => {
+    if (!meme) return;
+    toggleFavorite({
+      id: meme.id,
+      universeId: meme.universeId,
+      situacao: meme.situacao,
+      desculpa: meme.desculpa,
+      respostaIA: meme.respostaIA,
+      statusLabel: meme.status.label,
+      statusEmoji: meme.status.emoji,
+      savedAt: Date.now(),
+    });
+    setFav(isFavorite(meme.id));
+    setToast(isFavorite(meme.id) ? "Salvo nos favoritos!" : "Removido");
+    setTimeout(() => setToast(null), 1800);
+  };
+
   return (
-    <div className="min-h-screen bg-[#07070b] text-zinc-100">
-      {/* App header */}
-      <header className="sticky top-0 z-20 border-b border-white/5 bg-[#07070b]/95 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#07070b] text-zinc-100 relative overflow-hidden">
+      {/* Universe ambient glow */}
+      <div className={`pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-[80px] ${theme.glow}`} />
+
+      {/* Header */}
+      <header className="sticky top-0 z-20 border-b border-white/5 bg-[#07070b]/90 backdrop-blur-xl">
         <div className="max-w-lg mx-auto px-3 h-14 flex items-center gap-3">
           <button
             onClick={() => router.push("/")}
@@ -194,9 +264,10 @@ export default function UniversePage({
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-5 pb-28">
+      {/* Content: card in the center */}
+      <main className="max-w-lg mx-auto px-4 pt-4 pb-40">
         {/* Mode switch */}
-        <div className="flex gap-2 mb-5">
+        <div className="flex gap-2 mb-4">
           <button
             onClick={() => {
               setMode("random");
@@ -225,188 +296,190 @@ export default function UniversePage({
           </button>
         </div>
 
-        {/* Custom input */}
         {mode === "custom" && (
-          <div className="mb-5 space-y-3">
+          <div className="mb-4 space-y-2">
             <input
               type="text"
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && generateCustom()}
               placeholder="Ex: perdi no último minuto..."
-              className="w-full h-12 px-4 rounded-xl bg-[#12131b] border border-white/10 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-cyan-400/40"
+              className="w-full h-12 px-4 rounded-xl bg-[#12131b] border border-white/10 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/30"
             />
-            <button
-              onClick={generateCustom}
-              className="w-full h-12 rounded-xl bg-white text-black font-bold text-[14px] active:scale-[0.98] transition"
-            >
-              Gerar opções
-            </button>
           </div>
         )}
 
-        {/* Random generate button */}
-        {mode === "random" && (
-          <div className="mb-6 flex justify-center">
-            <motion.button
-              onClick={generateRandom}
-              animate={{ x: buttonOffset.x, y: buttonOffset.y }}
-              transition={{ type: "spring", stiffness: 320, damping: 22 }}
-              className="relative px-10 h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] shadow-[0_8px_30px_rgba(0,255,255,0.2)] active:scale-[0.97] transition"
-            >
-              <span className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                {count === 0 ? "Gerar desculpa" : "Gerar outro"}
-              </span>
-              {isFleeing && (
-                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-yellow-300 text-black text-[10px] font-bold">
-                  pega!
-                </span>
-              )}
-            </motion.button>
-          </div>
-        )}
-
-        {/* Custom options */}
-        <AnimatePresence>
-          {customOptions && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3 mb-6"
-            >
-              <div className="text-[11px] tracking-widest text-zinc-500">
-                ESCOLHA UMA ({customOptions.length})
-              </div>
-              {customOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => selectOption(opt)}
-                  className="w-full text-left p-4 rounded-2xl bg-[#12131b] border border-white/10 active:scale-[0.98] transition hover:border-white/20"
-                >
-                  <div className="text-[10px] text-cyan-300 mb-1">
-                    {opt.status.emoji} {opt.status.label}
-                  </div>
-                  <div className="font-display font-bold text-[15px] text-white leading-snug">
-                    {opt.situacao}
-                  </div>
-                  <div className="mt-1 text-[13px] text-zinc-400 italic line-clamp-1">
-                    "{opt.desculpa}"
-                  </div>
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Meme result card */}
-        <AnimatePresence mode="wait">
-          {meme && (
-            <motion.div
-              key={meme.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.28 }}
-            >
-              <div
-                ref={cardRef}
-                className="rounded-2xl border border-white/10 bg-[#12131b] overflow-hidden shadow-[0_16px_50px_rgba(0,0,0,0.5)]"
+        {/* CENTER: meme photo/card area */}
+        <div className="min-h-[340px] flex flex-col justify-center">
+          <AnimatePresence mode="wait">
+            {customOptions && (
+              <motion.div
+                key="options"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-2.5"
               >
-                <div className={`h-[3px] bg-gradient-to-r ${meme.status.bg}`} />
-
-                <div className="flex items-center justify-between px-4 h-11 border-b border-white/5 bg-[#171925]">
-                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
-                    <TriangleAlert className="w-3.5 h-3.5 text-yellow-300" />
-                    #{meme.id}
-                  </div>
-                  <div className="text-[10px] text-zinc-600">{universe.emoji} {universe.shortName}</div>
+                <div className="text-[11px] tracking-widest text-zinc-500">
+                  ESCOLHA UMA ({customOptions.length})
                 </div>
-
-                <div className="p-4 space-y-4">
-                  <div>
-                    <div className="text-[10px] tracking-[0.2em] text-cyan-300 mb-1">SITUAÇÃO REAL</div>
-                    <div className="font-display font-bold text-[18px] leading-[1.2] text-white">
-                      {meme.situacao.toUpperCase()}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-[#0a0b10] border border-white/5 p-3">
-                    <div className="text-[10px] tracking-[0.2em] text-fuchsia-300 mb-1.5 flex items-center gap-1.5">
-                      <Skull className="w-3.5 h-3.5" /> DESCULPA
-                    </div>
-                    <div className="text-[15px] text-zinc-100 font-medium">"{meme.desculpa}"</div>
-                  </div>
-
-                  <div className="rounded-xl bg-[#0a0b10] border border-white/5 p-3">
-                    <div className="text-[10px] tracking-[0.2em] text-yellow-200 mb-1.5">RESPOSTA DA IA</div>
-                    <div className="text-[14px] text-zinc-300 italic leading-relaxed">
-                      “{meme.respostaIA}”
-                    </div>
-                  </div>
-
-                  <div className={`text-[12px] font-bold tracking-wide ${meme.status.color}`}>
-                    STATUS: {meme.status.emoji} {meme.status.label}
-                  </div>
-                </div>
-
-                <div className="px-4 pb-4 flex flex-col gap-2">
+                {customOptions.map((opt) => (
                   <button
-                    onClick={copyText}
-                    className="h-11 rounded-xl bg-white text-black text-[13px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition"
+                    key={opt.id}
+                    onClick={() => selectOption(opt)}
+                    className={`w-full text-left p-3.5 rounded-2xl bg-[#12131b] border ${theme.border} active:scale-[0.98] transition`}
                   >
-                    <Copy className="w-4 h-4" /> Copiar texto
+                    <div className="text-[10px] text-zinc-400 mb-1">
+                      {opt.status.emoji} {opt.status.label}
+                    </div>
+                    <div className="font-display font-bold text-[14px] text-white leading-snug">
+                      {opt.situacao}
+                    </div>
+                    <div className="mt-1 text-[12px] text-zinc-400 italic line-clamp-1">
+                      "{opt.desculpa}"
+                    </div>
                   </button>
-                  <div className="grid grid-cols-3 gap-2">
+                ))}
+              </motion.div>
+            )}
+
+            {meme && !customOptions && (
+              <motion.div
+                key={meme.id}
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.28 }}
+              >
+                {/* The "photo" card */}
+                <div
+                  ref={cardRef}
+                  className={`rounded-3xl border ${theme.border} bg-[#12131b] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.55)]`}
+                >
+                  <div className={`h-1.5 bg-gradient-to-r ${universe.accent}`} />
+
+                  <div className="flex items-center justify-between px-4 h-10 border-b border-white/5 bg-[#171925]/80">
+                    <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+                      <TriangleAlert className="w-3.5 h-3.5 text-yellow-300" />
+                      #{meme.id}
+                    </div>
+                    <div className="text-[10px] text-zinc-500">
+                      {universe.emoji} {universe.shortName}
+                    </div>
+                  </div>
+
+                  <div className={`p-4 space-y-3.5 bg-gradient-to-b ${theme.soft}`}>
+                    <div>
+                      <div className="text-[10px] tracking-[0.18em] text-zinc-400 mb-1">SITUAÇÃO</div>
+                      <div className="font-display font-bold text-[17px] leading-[1.25] text-white">
+                        {meme.situacao.toUpperCase()}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-black/40 border border-white/5 p-3">
+                      <div className="text-[10px] tracking-[0.18em] text-fuchsia-300 mb-1 flex items-center gap-1.5">
+                        <Skull className="w-3.5 h-3.5" /> DESCULPA
+                      </div>
+                      <div className="text-[15px] text-zinc-100 font-medium leading-snug">
+                        "{meme.desculpa}"
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-black/40 border border-white/5 p-3">
+                      <div className="text-[10px] tracking-[0.18em] text-yellow-200 mb-1">IA</div>
+                      <div className="text-[13px] text-zinc-300 italic leading-relaxed">
+                        “{meme.respostaIA}”
+                      </div>
+                    </div>
+
+                    <div className={`text-[12px] font-bold tracking-wide ${meme.status.color}`}>
+                      {meme.status.emoji} {meme.status.label}
+                    </div>
+                  </div>
+
+                  <div className="px-3 pb-3 pt-1 grid grid-cols-4 gap-1.5">
+                    <button
+                      onClick={copyText}
+                      className="h-10 rounded-xl bg-white text-black text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
+                    >
+                      <Copy className="w-3.5 h-3.5" /> Copiar
+                    </button>
                     <button
                       onClick={share}
-                      className="h-11 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[12px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
                     >
                       <Share2 className="w-3.5 h-3.5" /> Share
                     </button>
                     <button
                       onClick={downloadImage}
-                      className="h-11 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[12px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
                     >
-                      <Download className="w-3.5 h-3.5" /> Salvar
+                      <Download className="w-3.5 h-3.5" /> Foto
                     </button>
                     <button
-                      onClick={() => {
-                        if (mode === "random") generateRandom();
-                        else {
-                          setMeme(null);
-                          setCustomOptions(null);
-                        }
-                      }}
-                      className="h-11 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[12px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+                      onClick={onFavorite}
+                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" /> Outro
+                      <Heart className={`w-3.5 h-3.5 ${fav ? "fill-pink-400 text-pink-400" : ""}`} />
+                      {fav ? "Salvo" : "Salvar"}
                     </button>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
 
-        {!meme && !customOptions && mode === "random" && (
-          <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
-            <div className="text-[32px] mb-2">{universe.emoji}</div>
-            <div className="text-[14px] text-zinc-400">
-              Toque no botão acima para gerar a primeira desculpa deste universo.
-            </div>
-          </div>
-        )}
+            {!meme && !customOptions && (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`rounded-3xl border border-dashed ${theme.border} bg-gradient-to-b ${theme.soft} p-10 text-center`}
+              >
+                <div className="text-[48px] mb-3">{universe.emoji}</div>
+                <div className="font-display font-bold text-[16px] text-white mb-1">
+                  {universe.name}
+                </div>
+                <div className="text-[13px] text-zinc-400 leading-relaxed">
+                  O meme aparece aqui no centro.
+                  <br />
+                  Use o botão embaixo para gerar.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
+
+      {/* BOTTOM: generate button (above bottom nav) */}
+      <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-3 pt-2 bg-gradient-to-t from-[#07070b] via-[#07070b]/95 to-transparent">
+        <div className="max-w-lg mx-auto">
+          {mode === "random" ? (
+            <button
+              onClick={generateRandom}
+              className={`w-full h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] active:scale-[0.98] transition flex items-center justify-center gap-2 ${theme.buttonShadow}`}
+            >
+              <Zap className="w-5 h-5" />
+              {count === 0 ? "Gerar desculpa" : "Gerar outro"}
+            </button>
+          ) : (
+            <button
+              onClick={generateCustom}
+              className={`w-full h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] active:scale-[0.98] transition flex items-center justify-center gap-2 ${theme.buttonShadow}`}
+            >
+              <Sparkles className="w-5 h-5" />
+              Gerar opções
+            </button>
+          )}
+        </div>
+      </div>
 
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-white text-black text-[13px] font-bold shadow-lg"
+            className="fixed bottom-36 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-white text-black text-[13px] font-bold shadow-lg"
           >
             {toast}
           </motion.div>
