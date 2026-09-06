@@ -178,7 +178,6 @@ export default function Home() {
     }
   };
 
-  // Keyboard shortcut
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "Enter") {
@@ -192,14 +191,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background effects */}
       <div className="absolute inset-0 grid-bg opacity-60" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#07070b]" />
       <div className="pointer-events-none absolute -top-24 -left-24 w-[420px] h-[420px] bg-fuchsia-600/20 rounded-full blur-[80px]" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 w-[500px] h-[500px] bg-cyan-400/15 rounded-full blur-[90px]" />
       <div className="pointer-events-none absolute top-0 left-0 w-full h-[2px] scanline" />
 
-      {/* BSOD */}
       <AnimatePresence>
         {bsod && (
           <motion.div
@@ -223,9 +220,7 @@ export default function Home() {
       </AnimatePresence>
 
       <div className="relative z-10 max-w-[1040px] mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-16">
-        {/* Window chrome */}
         <div className="rounded-[10px] border border-white/10 bg-[#12131a]/80 backdrop-blur-xl overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_20px_80px_rgba(0,0,0,0.6)]">
-          {/* Title bar */}
           <div className="flex items-center justify-between px-3 sm:px-4 h-[36px] bg-[#1a1c26] border-b border-white/10">
             <div className="flex items-center gap-2">
               <div className="flex gap-[6px]">
@@ -251,7 +246,6 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row">
-            {/* Sidebar */}
             <div className="sm:w-[220px] border-b sm:border-b-0 sm:border-r border-white/10 bg-[#0e0f16]/60 p-3 sm:p-4 flex sm:flex-col gap-3 sm:gap-4 overflow-x-auto sm:overflow-visible">
               <div className="min-w-[120px] sm:min-w-0">
                 <div className="text-[10px] tracking-[0.18em] text-zinc-500">BUGS GERADOS</div>
@@ -271,12 +265,12 @@ export default function Home() {
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> LOG
                 </div>
                 <div className="mt-1.5 space-y-1 text-[11px] leading-[1.3] text-zinc-400">
-                  <div>> sistema pronto...</div>
+                  <div>{'>'} sistema pronto...</div>
                   <div className="text-cyan-300/80">
-                    > {count === 0 ? "aguardando clique" : `último bug: #${meme?.id}`}
+                    {'>'} {count === 0 ? "aguardando clique" : `último bug: #${meme?.id}`}
                   </div>
                   {isFleeing && (
-                    <div className="text-yellow-300">> alerta: botão instável!</div>
+                    <div className="text-yellow-300">{'>'} alerta: botão instável!</div>
                   )}
                 </div>
               </div>
@@ -288,7 +282,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Main content */}
             <div className="flex-1 p-4 sm:p-7">
               <div className={`transition ${glitching ? "glitch-active" : ""}`}>
                 <h1 className="font-display font-bold tracking-tight leading-[0.9] text-[30px] sm:text-[44px]">
@@ -309,7 +302,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Generate button area */}
               <div className="mt-6 sm:mt-8 relative h-[132px] sm:h-[150px] rounded-[14px] bg-[#0b0c12] border border-white/10 flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 opacity-30">
                   <div
@@ -355,7 +347,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Meme card */}
               <AnimatePresence mode="wait">
                 {meme ? (
                   <motion.div
@@ -368,7 +359,7 @@ export default function Home() {
                   >
                     <div
                       ref={cardRef}
-                      className={`rounded-[14px] border border-white/10 bg-[#12131b] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] relative`}
+                      className="rounded-[14px] border border-white/10 bg-[#12131b] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] relative"
                     >
                       <div className={`absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r ${meme.status.bg}`} />
 
@@ -505,7 +496,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
