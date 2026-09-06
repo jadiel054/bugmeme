@@ -7,7 +7,6 @@ import {
   Zap,
   Copy,
   Share2,
-  RefreshCw,
   ArrowLeft,
   TriangleAlert,
   Skull,
@@ -24,6 +23,8 @@ import {
 } from "@/lib/universes";
 import { toPng } from "html-to-image";
 import { toggleFavorite, isFavorite } from "@/lib/prefs";
+import { pushHistory } from "@/lib/history";
+import { buildMemeText, shareWhatsApp, shareX, shareNative } from "@/lib/share";
 import Link from "next/link";
 
 const UNIVERSE_THEME: Record<
@@ -79,6 +80,19 @@ const UNIVERSE_THEME: Record<
     buttonShadow: "shadow-[0_8px_32px_rgba(251,146,60,0.25)]",
   },
 };
+
+function toSaved(m: Meme) {
+  return {
+    id: m.id,
+    universeId: m.universeId,
+    situacao: m.situacao,
+    desculpa: m.desculpa,
+    respostaIA: m.respostaIA,
+    statusLabel: m.status.label,
+    statusEmoji: m.status.emoji,
+    savedAt: Date.now(),
+  };
+}
 
 export default function UniversePage({
   params,
@@ -148,20 +162,29 @@ export default function UniversePage({
     [initAudio]
   );
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 1800);
+  };
+
+  const applyMeme = (next: Meme) => {
+    setMeme(next);
+    setCustomOptions(null);
+    pushHistory(toSaved(next));
+  };
+
   const generateRandom = () => {
     playSound("click");
     setCount((c) => c + 1);
     setTimeout(() => {
-      setMeme(generateMeme(universeId, meme));
-      setCustomOptions(null);
+      applyMeme(generateMeme(universeId, meme));
       playSound("win");
     }, 120);
   };
 
   const generateCustom = () => {
     if (!customInput.trim()) {
-      setToast("Digite um contexto");
-      setTimeout(() => setToast(null), 1800);
+      showToast("Digite um contexto");
       return;
     }
     playSound("click");
@@ -174,33 +197,29 @@ export default function UniversePage({
   };
 
   const selectOption = (opt: Meme) => {
-    setMeme(opt);
-    setCustomOptions(null);
+    applyMeme(opt);
     playSound("click");
   };
 
   const copyText = async () => {
     if (!meme) return;
-    const text = `SITUAÇÃO: ${meme.situacao}\nDESCULPA: ${meme.desculpa}\nIA: ${meme.respostaIA}\nSTATUS: ${meme.status.emoji} ${meme.status.label}`;
     try {
-      await navigator.clipboard.writeText(text);
-      setToast("Copiado!");
+      await navigator.clipboard.writeText(buildMemeText(meme));
+      showToast("Copiado!");
     } catch {
-      setToast("Erro ao copiar");
+      showToast("Erro ao copiar");
     }
-    setTimeout(() => setToast(null), 1800);
   };
 
   const share = async () => {
     if (!meme) return;
-    const text = `SITUAÇÃO: ${meme.situacao}\nDESCULPA: "${meme.desculpa}"\nIA: "${meme.respostaIA}"\nSTATUS: ${meme.status.emoji} ${meme.status.label}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "BugMeme", text });
-      } catch {
-        copyText();
-      }
-    } else copyText();
+    const text = buildMemeText(meme);
+    try {
+      const ok = await shareNative("BugMeme", text);
+      if (!ok) shareWhatsApp(text);
+    } catch {
+      shareWhatsApp(text);
+    }
   };
 
   const downloadImage = async () => {
@@ -215,37 +234,24 @@ export default function UniversePage({
       a.download = `bugmeme-${meme.id}.png`;
       a.href = dataUrl;
       a.click();
-      setToast("Imagem baixada!");
-      setTimeout(() => setToast(null), 1800);
+      showToast("Imagem baixada!");
     } catch {
-      setToast("Erro ao baixar");
-      setTimeout(() => setToast(null), 1800);
+      showToast("Erro ao baixar");
     }
   };
 
   const onFavorite = () => {
     if (!meme) return;
-    toggleFavorite({
-      id: meme.id,
-      universeId: meme.universeId,
-      situacao: meme.situacao,
-      desculpa: meme.desculpa,
-      respostaIA: meme.respostaIA,
-      statusLabel: meme.status.label,
-      statusEmoji: meme.status.emoji,
-      savedAt: Date.now(),
-    });
-    setFav(isFavorite(meme.id));
-    setToast(isFavorite(meme.id) ? "Salvo nos favoritos!" : "Removido");
-    setTimeout(() => setToast(null), 1800);
+    toggleFavorite(toSaved(meme));
+    const active = isFavorite(meme.id);
+    setFav(active);
+    showToast(active ? "Salvo nos favoritos!" : "Removido");
   };
 
   return (
     <div className="min-h-screen bg-[#07070b] text-zinc-100 relative overflow-hidden">
-      {/* Universe ambient glow */}
       <div className={`pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-[80px] ${theme.glow}`} />
 
-      {/* Header */}
       <header className="sticky top-0 z-20 border-b border-white/5 bg-[#07070b]/90 backdrop-blur-xl">
         <div className="max-w-lg mx-auto px-3 h-14 flex items-center gap-3">
           <button
@@ -264,9 +270,7 @@ export default function UniversePage({
         </div>
       </header>
 
-      {/* Content: card in the center */}
       <main className="max-w-lg mx-auto px-4 pt-4 pb-40">
-        {/* Mode switch */}
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => {
@@ -274,9 +278,7 @@ export default function UniversePage({
               setCustomOptions(null);
             }}
             className={`flex-1 h-10 rounded-xl text-[13px] font-bold transition ${
-              mode === "random"
-                ? "bg-white text-black"
-                : "bg-white/5 text-zinc-400 border border-white/10"
+              mode === "random" ? "bg-white text-black" : "bg-white/5 text-zinc-400 border border-white/10"
             }`}
           >
             Aleatório
@@ -287,9 +289,7 @@ export default function UniversePage({
               setMeme(null);
             }}
             className={`flex-1 h-10 rounded-xl text-[13px] font-bold flex items-center justify-center gap-1.5 transition ${
-              mode === "custom"
-                ? "bg-white text-black"
-                : "bg-white/5 text-zinc-400 border border-white/10"
+              mode === "custom" ? "bg-white text-black" : "bg-white/5 text-zinc-400 border border-white/10"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" /> Personalizado
@@ -297,7 +297,7 @@ export default function UniversePage({
         </div>
 
         {mode === "custom" && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-4">
             <input
               type="text"
               value={customInput}
@@ -309,7 +309,6 @@ export default function UniversePage({
           </div>
         )}
 
-        {/* CENTER: meme photo/card area */}
         <div className="min-h-[340px] flex flex-col justify-center">
           <AnimatePresence mode="wait">
             {customOptions && (
@@ -332,12 +331,8 @@ export default function UniversePage({
                     <div className="text-[10px] text-zinc-400 mb-1">
                       {opt.status.emoji} {opt.status.label}
                     </div>
-                    <div className="font-display font-bold text-[14px] text-white leading-snug">
-                      {opt.situacao}
-                    </div>
-                    <div className="mt-1 text-[12px] text-zinc-400 italic line-clamp-1">
-                      "{opt.desculpa}"
-                    </div>
+                    <div className="font-display font-bold text-[14px] text-white leading-snug">{opt.situacao}</div>
+                    <div className="mt-1 text-[12px] text-zinc-400 italic line-clamp-1">"{opt.desculpa}"</div>
                   </button>
                 ))}
               </motion.div>
@@ -351,17 +346,14 @@ export default function UniversePage({
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.28 }}
               >
-                {/* The "photo" card */}
                 <div
                   ref={cardRef}
                   className={`rounded-3xl border ${theme.border} bg-[#12131b] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.55)]`}
                 >
                   <div className={`h-1.5 bg-gradient-to-r ${universe.accent}`} />
-
                   <div className="flex items-center justify-between px-4 h-10 border-b border-white/5 bg-[#171925]/80">
                     <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
-                      <TriangleAlert className="w-3.5 h-3.5 text-yellow-300" />
-                      #{meme.id}
+                      <TriangleAlert className="w-3.5 h-3.5 text-yellow-300" /> #{meme.id}
                     </div>
                     <div className="text-[10px] text-zinc-500">
                       {universe.emoji} {universe.shortName}
@@ -375,54 +367,51 @@ export default function UniversePage({
                         {meme.situacao.toUpperCase()}
                       </div>
                     </div>
-
                     <div className="rounded-2xl bg-black/40 border border-white/5 p-3">
                       <div className="text-[10px] tracking-[0.18em] text-fuchsia-300 mb-1 flex items-center gap-1.5">
                         <Skull className="w-3.5 h-3.5" /> DESCULPA
                       </div>
-                      <div className="text-[15px] text-zinc-100 font-medium leading-snug">
-                        "{meme.desculpa}"
-                      </div>
+                      <div className="text-[15px] text-zinc-100 font-medium leading-snug">"{meme.desculpa}"</div>
                     </div>
-
                     <div className="rounded-2xl bg-black/40 border border-white/5 p-3">
                       <div className="text-[10px] tracking-[0.18em] text-yellow-200 mb-1">IA</div>
-                      <div className="text-[13px] text-zinc-300 italic leading-relaxed">
-                        “{meme.respostaIA}”
-                      </div>
+                      <div className="text-[13px] text-zinc-300 italic leading-relaxed">“{meme.respostaIA}”</div>
                     </div>
-
                     <div className={`text-[12px] font-bold tracking-wide ${meme.status.color}`}>
                       {meme.status.emoji} {meme.status.label}
                     </div>
                   </div>
 
-                  <div className="px-3 pb-3 pt-1 grid grid-cols-4 gap-1.5">
-                    <button
-                      onClick={copyText}
-                      className="h-10 rounded-xl bg-white text-black text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
-                    >
-                      <Copy className="w-3.5 h-3.5" /> Copiar
-                    </button>
-                    <button
-                      onClick={share}
-                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
-                    >
-                      <Share2 className="w-3.5 h-3.5" /> Share
-                    </button>
-                    <button
-                      onClick={downloadImage}
-                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Foto
-                    </button>
-                    <button
-                      onClick={onFavorite}
-                      className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]"
-                    >
-                      <Heart className={`w-3.5 h-3.5 ${fav ? "fill-pink-400 text-pink-400" : ""}`} />
-                      {fav ? "Salvo" : "Salvar"}
-                    </button>
+                  <div className="px-3 pb-3 pt-1 space-y-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
+                      <button onClick={copyText} className="h-10 rounded-xl bg-white text-black text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]">
+                        <Copy className="w-3.5 h-3.5" /> Copiar
+                      </button>
+                      <button onClick={share} className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]">
+                        <Share2 className="w-3.5 h-3.5" /> Share
+                      </button>
+                      <button onClick={downloadImage} className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]">
+                        <Download className="w-3.5 h-3.5" /> Foto
+                      </button>
+                      <button onClick={onFavorite} className="h-10 rounded-xl bg-[#1d1f2d] border border-white/10 text-zinc-200 text-[11px] font-bold flex items-center justify-center gap-1 active:scale-[0.97]">
+                        <Heart className={`w-3.5 h-3.5 ${fav ? "fill-pink-400 text-pink-400" : ""}`} />
+                        {fav ? "Salvo" : "Salvar"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => meme && shareWhatsApp(buildMemeText(meme))}
+                        className="h-9 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[12px] font-bold active:scale-[0.97]"
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        onClick={() => meme && shareX(buildMemeText(meme))}
+                        className="h-9 rounded-xl bg-sky-500/15 border border-sky-400/30 text-sky-300 text-[12px] font-bold active:scale-[0.97]"
+                      >
+                        Postar no X
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -436,9 +425,7 @@ export default function UniversePage({
                 className={`rounded-3xl border border-dashed ${theme.border} bg-gradient-to-b ${theme.soft} p-10 text-center`}
               >
                 <div className="text-[48px] mb-3">{universe.emoji}</div>
-                <div className="font-display font-bold text-[16px] text-white mb-1">
-                  {universe.name}
-                </div>
+                <div className="font-display font-bold text-[16px] text-white mb-1">{universe.name}</div>
                 <div className="text-[13px] text-zinc-400 leading-relaxed">
                   O meme aparece aqui no centro.
                   <br />
@@ -450,26 +437,23 @@ export default function UniversePage({
         </div>
       </main>
 
-      {/* BOTTOM: generate button (above bottom nav) */}
       <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-3 pt-2 bg-gradient-to-t from-[#07070b] via-[#07070b]/95 to-transparent">
         <div className="max-w-lg mx-auto">
-          {mode === "random" ? (
-            <button
-              onClick={generateRandom}
-              className={`w-full h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] active:scale-[0.98] transition flex items-center justify-center gap-2 ${theme.buttonShadow}`}
-            >
-              <Zap className="w-5 h-5" />
-              {count === 0 ? "Gerar desculpa" : "Gerar outro"}
-            </button>
-          ) : (
-            <button
-              onClick={generateCustom}
-              className={`w-full h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] active:scale-[0.98] transition flex items-center justify-center gap-2 ${theme.buttonShadow}`}
-            >
-              <Sparkles className="w-5 h-5" />
-              Gerar opções
-            </button>
-          )}
+          <button
+            onClick={mode === "random" ? generateRandom : generateCustom}
+            className={`w-full h-14 rounded-2xl bg-white text-black font-display font-bold text-[16px] active:scale-[0.98] transition flex items-center justify-center gap-2 ${theme.buttonShadow}`}
+          >
+            {mode === "random" ? (
+              <>
+                <Zap className="w-5 h-5" />
+                {count === 0 ? "Gerar desculpa" : "Gerar outro"}
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" /> Gerar opções
+              </>
+            )}
+          </button>
         </div>
       </div>
 
