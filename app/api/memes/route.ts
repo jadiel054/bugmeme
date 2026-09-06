@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { desc } from "drizzle-orm";
 import { hasDatabase, getDb } from "@/lib/db";
 import { generatedMemes } from "@/lib/db/schema";
 
@@ -63,11 +64,8 @@ export async function GET(req: NextRequest) {
     const items = await db
       .select()
       .from(generatedMemes)
-      .orderBy(generatedMemes.createdAt)
+      .orderBy(desc(generatedMemes.createdAt))
       .limit(limit);
-
-    // newest first
-    items.reverse();
 
     return NextResponse.json({ ok: true, items });
   } catch (e) {
